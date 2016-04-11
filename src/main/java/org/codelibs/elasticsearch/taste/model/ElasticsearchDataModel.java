@@ -75,9 +75,9 @@ public class ElasticsearchDataModel implements DataModel {
 
     protected Scroll scrollKeepAlive = new Scroll(TimeValue.timeValueMinutes(1));
 
-    protected int scrollSize = 1000;
+    protected int scrollSize = TasteConstants.DEFAULT_DATA_MODEL_SCROLL_SIZE;
 
-    protected int maxPreferenceSize = 10000;
+    protected int maxPreferenceSize = TasteConstants.DEFAULT_DATA_MODEL_MAX_PREFERENCE_SIZE;
 
     protected volatile long[] userIDs;
 

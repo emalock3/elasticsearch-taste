@@ -57,4 +57,8 @@ public class TasteConstants {
     public static final String REQUEST_PARAM_TARGET_ID_FIELD = "target_id_field";
 
     public static final String REQUEST_PARAM_ID_FIELD = "id_field";
+    
+    public static final int DEFAULT_DATA_MODEL_SCROLL_SIZE = 1000;
+    
+    public static final int DEFAULT_DATA_MODEL_MAX_PREFERENCE_SIZE = 10000;
 }

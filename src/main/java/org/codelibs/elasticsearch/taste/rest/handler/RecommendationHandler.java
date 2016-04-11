@@ -3,6 +3,7 @@ package org.codelibs.elasticsearch.taste.rest.handler;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
+import org.codelibs.elasticsearch.taste.TasteConstants;
 
 import org.codelibs.elasticsearch.taste.exception.TasteException;
 import org.codelibs.elasticsearch.taste.model.ElasticsearchDataModel;
@@ -95,6 +96,15 @@ public abstract class RecommendationHandler extends ActionHandler {
                 if (weightSize > 0) {
                     model.setMaxCacheWeight(weightSize);
                 }
+            }
+            final Object maxPreferenceSize = SettingsUtils.get(modelInfoSettings, 
+                "max_preference_size", TasteConstants.DEFAULT_DATA_MODEL_MAX_PREFERENCE_SIZE);
+            if (maxPreferenceSize instanceof Number) {
+                int maxPrefSize = ((Number) maxPreferenceSize).intValue();
+                model.setMaxPreferenceSize(maxPrefSize > 0 ? maxPrefSize : 
+                    TasteConstants.DEFAULT_DATA_MODEL_MAX_PREFERENCE_SIZE);
+            } else {
+                model.setMaxPreferenceSize(TasteConstants.DEFAULT_DATA_MODEL_MAX_PREFERENCE_SIZE);
             }
             return model;
         } catch (ClassNotFoundException | InstantiationException
