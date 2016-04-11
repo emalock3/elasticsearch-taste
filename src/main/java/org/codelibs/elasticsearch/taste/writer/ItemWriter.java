@@ -1,17 +1,28 @@
 package org.codelibs.elasticsearch.taste.writer;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
 
 import org.codelibs.elasticsearch.taste.TasteConstants;
 import org.codelibs.elasticsearch.taste.recommender.RecommendedItem;
+import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.bulk.BulkItemResponse;
+import org.elasticsearch.action.bulk.BulkRequestBuilder;
+import org.elasticsearch.action.bulk.BulkResponse;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.common.cache.Cache;
+import org.elasticsearch.common.logging.ESLogger;
+import org.elasticsearch.common.logging.Loggers;
 
 public class ItemWriter extends ObjectWriter {
+    
+    private static final ESLogger logger = Loggers.getLogger(ItemWriter.class);
 
     protected String targetIdField;
 
@@ -32,11 +43,14 @@ public class ItemWriter extends ObjectWriter {
     protected String itemType;
 
     protected Cache<Long, Map<String, Object>> cache;
+    
+    private final BlockingQueue<Map<String, Object>> rootObjQueue;
 
     public ItemWriter(final Client client, final String index,
             final String type, final String targetIdField) {
         super(client, index, type);
         this.targetIdField = targetIdField;
+        this.rootObjQueue = new ArrayBlockingQueue<>(1000);
     }
 
     public void write(final long id,
@@ -68,9 +82,48 @@ public class ItemWriter extends ObjectWriter {
             itemList.add(item);
         }
         rootObj.put(itemsField, itemList);
+        
+        if (!rootObjQueue.offer(rootObj)) {
+            synchronized(rootObjQueue) {
+                writeBulkObjs();
+                rootObjQueue.add(rootObj);
+            }
+        }
 
-        write(rootObj);
+    }
+    
+    private void writeBulkObjs() {
+        synchronized(rootObjQueue) {
+            BulkRequestBuilder brb = client.prepareBulk();
+            for (Map<String, Object> ro : rootObjQueue) {
+                brb.add(client.prepareIndex(index, type).setSource(ro));
+            }
+            brb.execute(new ActionListener<BulkResponse>() {
 
+                @Override
+                public void onResponse(final BulkResponse bulkResponse) {
+                    if (logger.isDebugEnabled()) {
+                        for (BulkItemResponse response : bulkResponse.getItems()) {
+                            logger.debug("Response: {}/{}/{}, Version: {}",
+                                    response.getIndex(), response.getType(),
+                                    response.getId(), response.getVersion());
+                        }
+                    }
+                }
+
+                @Override
+                public void onFailure(final Throwable e) {
+                    logger.error("Failed to bulk write ", e);
+                }
+            });
+            rootObjQueue.clear();
+        }
+    }
+
+    @Override
+    public void close() throws IOException {
+        writeBulkObjs();
+        super.close();
     }
 
     protected Map<String, Object> getItemMap(final long itemID) {

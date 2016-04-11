@@ -27,7 +27,7 @@ public class ObjectWriter extends AbstractWriter {
                     public void onResponse(final IndexResponse response) {
                         if (logger.isDebugEnabled()) {
                             logger.debug(
-                                    "Response: {}/{}/{}, Created: {}, Version: {}",
+                                    "Response: {}/{}/{}, Version: {}, Created: {}",
                                     response.getIndex(), response.getType(),
                                     response.getId(), response.getVersion(),
                                     response.isCreated());
