@@ -298,6 +298,13 @@ public class ElasticsearchDataModel implements DataModel {
         }
         return preferenceArray;
     }
+    
+    private void interruptIfNeeded(ElasticsearchException e) {
+        Throwable t = e.getCause();
+        if (t != null && t instanceof InterruptedException && !Thread.currentThread().isInterrupted()) {
+            Thread.currentThread().interrupt();
+        }
+    }
 
     @Override
     public Float getPreferenceValue(final long userID, final long itemID) {
@@ -327,6 +334,7 @@ public class ElasticsearchDataModel implements DataModel {
                     .addSort(timestampField, SortOrder.DESC).setSize(1)
                     .execute().actionGet();
         } catch (final ElasticsearchException e) {
+            interruptIfNeeded(e);
             throw new TasteException("Failed to get the preference by ("
                     + userID + "," + itemID + ")", e);
         }
@@ -386,6 +394,7 @@ public class ElasticsearchDataModel implements DataModel {
                     .addSort(timestampField, SortOrder.DESC).setSize(1)
                     .execute().actionGet();
         } catch (final ElasticsearchException e) {
+            interruptIfNeeded(e);
             throw new TasteException("Failed to get the timestamp by ("
                     + userID + "," + itemID + ")", e);
         }
@@ -508,6 +517,7 @@ public class ElasticsearchDataModel implements DataModel {
             client.prepareIndex(preferenceIndex, preferenceType)
                     .setSource(source).setRefresh(true).execute().actionGet();
         } catch (final ElasticsearchException e) {
+            interruptIfNeeded(e);
             throw new TasteException("Failed to set (" + userID + "," + itemID
                     + "," + value + ")", e);
         }
@@ -567,6 +577,7 @@ public class ElasticsearchDataModel implements DataModel {
                                     getLastAccessedFilterQuery())).execute()
                     .actionGet();
         } catch (final ElasticsearchException e) {
+            interruptIfNeeded(e);
             throw new TasteException("Failed to remove the preference by ("
                     + userID + "," + itemID + ")", e);
         }
@@ -628,6 +639,7 @@ public class ElasticsearchDataModel implements DataModel {
                     .addSort(timestampField, SortOrder.DESC)
                     .setSize(maxPreferenceSize).execute().actionGet();
         } catch (final ElasticsearchException e) {
+            interruptIfNeeded(e);
             throw new TasteException("Failed to get the preference by "
                     + targetField + ":" + targetID, e);
         }
@@ -675,6 +687,7 @@ public class ElasticsearchDataModel implements DataModel {
                     .addFields(userIdField).setSize(scrollSize).execute()
                     .actionGet();
         } catch (final ElasticsearchException e) {
+            interruptIfNeeded(e);
             throw new TasteException("Failed to load userIDs.", e);
         }
 
@@ -702,6 +715,7 @@ public class ElasticsearchDataModel implements DataModel {
                 }
             }
         } catch (final ElasticsearchException e) {
+            interruptIfNeeded(e);
             throw new TasteException(
                     "Failed to scroll the results by userIDs.", e);
         }
@@ -732,6 +746,7 @@ public class ElasticsearchDataModel implements DataModel {
                     .addFields(itemIdField).setSize(scrollSize).execute()
                     .actionGet();
         } catch (final ElasticsearchException e) {
+            interruptIfNeeded(e);
             throw new TasteException("Failed to load itemIDs.", e);
         }
 
@@ -759,6 +774,7 @@ public class ElasticsearchDataModel implements DataModel {
                 }
             }
         } catch (final ElasticsearchException e) {
+            interruptIfNeeded(e);
             throw new TasteException("Failed to scroll the result by itemIDs.",
                     e);
         }

@@ -94,29 +94,31 @@ public class ItemWriter extends ObjectWriter {
     
     private void writeBulkObjs() {
         synchronized(rootObjQueue) {
-            BulkRequestBuilder brb = client.prepareBulk();
-            for (Map<String, Object> ro : rootObjQueue) {
-                brb.add(client.prepareIndex(index, type).setSource(ro));
-            }
-            brb.execute(new ActionListener<BulkResponse>() {
+            if (rootObjQueue.size() > 0) {
+                BulkRequestBuilder brb = client.prepareBulk();
+                for (Map<String, Object> ro : rootObjQueue) {
+                    brb.add(client.prepareIndex(index, type).setSource(ro));
+                }
+                brb.execute(new ActionListener<BulkResponse>() {
 
-                @Override
-                public void onResponse(final BulkResponse bulkResponse) {
-                    if (logger.isDebugEnabled()) {
-                        for (BulkItemResponse response : bulkResponse.getItems()) {
-                            logger.debug("Response: {}/{}/{}, Version: {}",
-                                    response.getIndex(), response.getType(),
-                                    response.getId(), response.getVersion());
+                    @Override
+                    public void onResponse(final BulkResponse bulkResponse) {
+                        if (logger.isDebugEnabled()) {
+                            for (BulkItemResponse response : bulkResponse.getItems()) {
+                                logger.debug("Response: {}/{}/{}, Version: {}",
+                                        response.getIndex(), response.getType(),
+                                        response.getId(), response.getVersion());
+                            }
                         }
                     }
-                }
 
-                @Override
-                public void onFailure(final Throwable e) {
-                    logger.error("Failed to bulk write ", e);
-                }
-            });
-            rootObjQueue.clear();
+                    @Override
+                    public void onFailure(final Throwable e) {
+                        logger.error("Failed to bulk write ", e);
+                    }
+                });
+                rootObjQueue.clear();
+            }
         }
     }
 
